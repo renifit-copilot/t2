@@ -2,14 +2,14 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/db';
-import { eq, and, sql } from 'drizzle-orm';
-import { feedback, slots, users } from '@/db/schema';
+import { eq, and, lte, gte } from 'drizzle-orm';
+import { feedback, mentorAssignments, users } from '@/db/schema';
 
 // Схема валидации входных данных
 const createFeedbackSchema = z.object({
-  mentorId: z.number(),
+  mentorId: z.string(),
   rating: z.number().min(1).max(5),
-  text: z.string().min(1),
+  comment: z.string().min(1),
 });
 
 export async function POST(request: Request) {
@@ -38,33 +38,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const { mentorId, rating, text } = result.data;
-
-    // Получаем ID студента
-    const student = await db.query.users.findFirst({
-      where: eq(users.telegramId, tgId),
-    });
-
-    if (!student) {
-      return NextResponse.json(
-        { error: 'Студент не найден' },
-        { status: 400 }
-      );
-    }
+    const { mentorId, rating, comment } = result.data;
 
     // Проверяем, назначен ли ментор на группу сегодня
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
-    const mentorSlot = await db.query.slots.findFirst({
+    const assignment = await db.query.mentorAssignments.findFirst({
       where: and(
-        eq(slots.mentorId, mentorId),
-        eq(slots.groupCode, groupCode),
-        sql`DATE(${slots.date}) = DATE(${today})`
+        eq(mentorAssignments.mentorId, mentorId),
+        eq(mentorAssignments.groupCode, groupCode),
+        lte(mentorAssignments.fromDate, today),
+        gte(mentorAssignments.toDate, today)
       ),
     });
 
-    if (!mentorSlot) {
+    if (!assignment) {
       return NextResponse.json(
         { error: 'Ментор не назначен на вашу группу сегодня' },
         { status: 400 }
@@ -72,10 +60,14 @@ export async function POST(request: Request) {
     }
 
     // Проверяем, нет ли уже отзыва от этого студента этому ментору сегодня
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
     const existingFeedback = await db.query.feedback.findFirst({
       where: and(
-        eq(feedback.studentId, student.id),
-        eq(feedback.slotId, mentorSlot.id)
+        eq(feedback.studentId, tgId),
+        eq(feedback.mentorId, mentorId),
+        gte(feedback.createdAt, todayStart)
       ),
     });
 
@@ -88,10 +80,12 @@ export async function POST(request: Request) {
 
     // Создаем отзыв
     await db.insert(feedback).values({
-      studentId: student.id,
-      slotId: mentorSlot.id,
+      studentId: tgId,
+      mentorId: mentorId,
+      groupCode: groupCode,
       rating: rating,
-      comment: text,
+
+      comment: comment,
     });
 
     return NextResponse.json({ success: true });
