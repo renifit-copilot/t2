@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { verifyTelegramInitData } from '@/core/telegram/validateInitData';
 import { db } from '@/db';
 import { users, accessCodes } from '@/db/schema';
@@ -24,12 +25,28 @@ export async function POST(req: Request) {
     where: (u, { eq }) => eq(u.telegramId, tgId),
   });
 
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict' as const,
+    maxAge: 30 * 24 * 60 * 60 // 30 дней
+  };
+
   if (existingUser) {
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       success: true, 
       role: existingUser.role,
       groupCode: existingUser.groupCode 
     });
+
+    // Установка cookies для существующего пользователя
+    response.cookies.set('role', existingUser.role, cookieOptions);
+    response.cookies.set('tgId', tgId, cookieOptions);
+    if (existingUser.groupCode) {
+      response.cookies.set('groupCode', existingUser.groupCode, cookieOptions);
+    }
+
+    return response;
   }
 
   // Если код не предоставлен, значит это просто проверка авторизации
@@ -46,10 +63,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Неверный код доступа' }, { status: 401 });
   }
 
-  if (!access) {
-    return NextResponse.json({ error: 'Неверный код доступа' }, { status: 401 });
-  }
-
+  // Создаем нового пользователя
   await db.insert(users).values({
     telegramId: tgId,
     username,
@@ -58,5 +72,18 @@ export async function POST(req: Request) {
     groupCode: access.groupCode ?? null,
   });
 
-  return NextResponse.json({ success: true, role: access.role });
+  const response = NextResponse.json({ 
+    success: true, 
+    role: access.role,
+    groupCode: access.groupCode ?? null 
+  });
+
+  // Установка cookies для нового пользователя
+  response.cookies.set('role', access.role, cookieOptions);
+  response.cookies.set('tgId', tgId, cookieOptions);
+  if (access.groupCode) {
+    response.cookies.set('groupCode', access.groupCode, cookieOptions);
+  }
+
+  return response;
 }

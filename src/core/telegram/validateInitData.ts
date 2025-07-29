@@ -1,10 +1,23 @@
-import { validate, parse } from '@telegram-apps/init-data-node';
+import { validate, parse } from '@telegram-apps/init-data-node/web';
 
-const TELEGRAM_BOT_TOKEN = process.env.BOT_TOKEN!;
-if (!TELEGRAM_BOT_TOKEN) throw new Error('BOT_TOKEN is not set');
+function getBotToken() {
+  // В middleware используем NEXT_PUBLIC_BOT_TOKEN
+  if (process.env.NEXT_PUBLIC_BOT_TOKEN) {
+    return process.env.NEXT_PUBLIC_BOT_TOKEN;
+  }
+  
+  // На сервере используем BOT_TOKEN
+  if (process.env.BOT_TOKEN) {
+    return process.env.BOT_TOKEN;
+  }
+
+  throw new Error('Bot token not configured. Set BOT_TOKEN in .env.local');
+}
 
 export function verifyTelegramInitData(initData: string) {
+  const token = getBotToken();
+  
   // Если валидация пройдена — вернём распарсенные данные
-  validate(initData, TELEGRAM_BOT_TOKEN);
+  validate(initData, token);
   return parse(initData);
 }

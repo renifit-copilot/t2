@@ -10,16 +10,19 @@ type AuthState = {
 export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [authState, setAuthState] = useState<AuthState>(() => {
-    // Инициализация из localStorage при первой загрузке
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('auth');
-      if (stored) {
-        return JSON.parse(stored);
+  const [authState, setAuthState] = useState<AuthState>({ role: null, groupCode: null });
+
+  // Загрузка состояния из localStorage только на клиенте
+  useEffect(() => {
+    const stored = localStorage.getItem('auth');
+    if (stored) {
+      try {
+        setAuthState(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to parse stored auth state:', e);
       }
     }
-    return { role: null, groupCode: null };
-  });
+  }, []);
 
   const router = useRouter();
   const initDataRaw = useRawInitData();
