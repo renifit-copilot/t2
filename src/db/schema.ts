@@ -1,27 +1,34 @@
-import { pgTable, serial, varchar, text, integer, timestamp } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { z } from 'zod';
+import {
+  pgTable,
+  serial,
+  varchar,
+  text,
+  integer,
+  timestamp,
+} from 'drizzle-orm/pg-core'
+import { relations } from 'drizzle-orm'
 
 // Типы ролей
 export const UserRole = {
   STUDENT: 'student',
   MENTOR: 'mentor',
   TEACHER: 'teacher',
-} as const;
+} as const
 
-export type UserRoleType = typeof UserRole[keyof typeof UserRole];
+export type UserRoleType = typeof UserRole[keyof typeof UserRole]
 
-// Таблица кодов доступа
+// ─────────────────────────────────────────────
+// Коды доступа (для регистрации)
 export const accessCodes = pgTable('access_codes', {
   id: serial('id').primaryKey(),
   code: varchar('code', { length: 16 }).unique().notNull(),
   role: text('role', { enum: ['student', 'mentor', 'teacher'] }).notNull(),
   groupCode: varchar('group_code', { length: 16 }),
-  expiresAt: text('expires_at'),
-});
+  expiresAt: text('expires_at'), // можно не использовать
+})
 
-// Таблица пользователей
+// ─────────────────────────────────────────────
+// Пользователи
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   telegramId: varchar('telegram_id', { length: 32 }).unique().notNull(),
@@ -30,48 +37,51 @@ export const users = pgTable('users', {
   role: text('role', { enum: ['student', 'mentor', 'teacher'] }).notNull(),
   groupCode: varchar('group_code', { length: 16 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+})
 
-// Таблица слотов занятий
-export const slots = pgTable('slots', {
+// ─────────────────────────────────────────────
+// Назначения наставников (вместо слотов)
+export const mentorAssignments = pgTable('mentor_assignments', {
   id: serial('id').primaryKey(),
-  date: timestamp('date').notNull(),
+  mentorId: varchar('mentor_id', { length: 32 }).notNull(), // Telegram ID
   groupCode: varchar('group_code', { length: 16 }).notNull(),
-  mentorId: integer('mentor_id').references(() => users.id).notNull(),
-  type: text('type').notNull(),
-});
+  fromDate: timestamp('from_date').notNull(),
+  toDate: timestamp('to_date').notNull(),
+})
 
-// Таблица отзывов
+// ─────────────────────────────────────────────
+// Отзывы
 export const feedback = pgTable('feedback', {
   id: serial('id').primaryKey(),
-  studentId: integer('student_id').references(() => users.id).notNull(),
-  slotId: integer('slot_id').references(() => slots.id).notNull(),
+  studentId: varchar('student_id', { length: 32 }).notNull(), // Telegram ID
+  mentorId: varchar('mentor_id', { length: 32 }).notNull(),   // Telegram ID
+  groupCode: varchar('group_code', { length: 16 }).notNull(),
   rating: integer('rating').notNull(),
   comment: text('comment'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+})
 
-// Отношения
+// ─────────────────────────────────────────────
+// Relations (если хочешь использовать)
 export const usersRelations = relations(users, ({ many }) => ({
-  slots: many(slots),
-  feedback: many(feedback),
-}));
-
-export const slotsRelations = relations(slots, ({ one, many }) => ({
-  mentor: one(users, {
-    fields: [slots.mentorId],
-    references: [users.id],
-  }),
-  feedback: many(feedback),
-}));
+  feedbacks: many(feedback),
+  assignments: many(mentorAssignments),
+}))
 
 export const feedbackRelations = relations(feedback, ({ one }) => ({
   student: one(users, {
     fields: [feedback.studentId],
-    references: [users.id],
+    references: [users.telegramId],
   }),
-  slot: one(slots, {
-    fields: [feedback.slotId],
-    references: [slots.id],
+  mentor: one(users, {
+    fields: [feedback.mentorId],
+    references: [users.telegramId],
   }),
-}));
+}))
+
+export const assignmentsRelations = relations(mentorAssignments, ({ one }) => ({
+  mentor: one(users, {
+    fields: [mentorAssignments.mentorId],
+    references: [users.telegramId],
+  }),
+}))
