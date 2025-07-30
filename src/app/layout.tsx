@@ -1,4 +1,5 @@
 import './global.css';
+// import InitSyncerWrapper from '@/components/auth/InitSyncerWrapper';
 
 export const metadata = {
   title: 'Next.js',

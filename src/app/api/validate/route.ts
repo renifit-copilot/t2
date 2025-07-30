@@ -4,6 +4,7 @@ import { verifyTelegramInitData } from '@/core/telegram/validateInitData';
 import { db } from '@/db';
 import { users, accessCodes } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
 
 export async function POST(req: Request) {
   const { initData, code } = await req.json();
@@ -29,7 +30,8 @@ export async function POST(req: Request) {
     httpOnly: true,
     secure: true,
     sameSite: 'strict' as const,
-    maxAge: 30 * 24 * 60 * 60 // 30 дней
+    maxAge: 30 * 24 * 60 * 60, // 30 дней
+    path: '/', // 🔥 Обязателен для middleware!
   };
 
   if (existingUser) {
@@ -51,8 +53,29 @@ export async function POST(req: Request) {
 
   // Если код не предоставлен, значит это просто проверка авторизации
   if (!code) {
-    return NextResponse.json({ error: 'Требуется код доступа' }, { status: 401 });
+    const existingUser: InferSelectModel<typeof users> | undefined = await db.query.users.findFirst({
+      where: (u, { eq }) => eq(u.telegramId, tgId),
+    });
+    if (!existingUser) {
+      return NextResponse.json({ error: 'Пользователь не найден', tgId }, { status: 404 });
+    }
+
+    const response = NextResponse.json({
+      success: true,
+      role: existingUser.role,
+      groupCode: existingUser.groupCode ?? null,
+      tgId,
+    });
+
+    response.cookies.set('role', existingUser.role, cookieOptions);
+    response.cookies.set('tgId', tgId, cookieOptions);
+    if (existingUser.groupCode) {
+      response.cookies.set('groupCode', existingUser.groupCode, cookieOptions);
+    }
+
+    return response;
   }
+
 
   // новый пользователь — нужно ввести корректный код
   const access = await db.query.accessCodes.findFirst({

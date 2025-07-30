@@ -1,10 +1,6 @@
-import { validate, parse } from '@telegram-apps/init-data-node/web';
+import { validate, parse } from '@telegram-apps/init-data-node';
 
 function getBotToken() {
-  // В middleware используем NEXT_PUBLIC_BOT_TOKEN
-  if (process.env.NEXT_PUBLIC_BOT_TOKEN) {
-    return process.env.NEXT_PUBLIC_BOT_TOKEN;
-  }
   
   // На сервере используем BOT_TOKEN
   if (process.env.BOT_TOKEN) {

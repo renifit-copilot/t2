@@ -1,27 +1,8 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { ClientForm } from '@/components/auth/ClientForm';
+import ClientFormWrapper from '@/components/auth/ClientFormWrapper';
 
-type Role = 'student' | 'mentor' | 'teacher';
-
-export default async function EnterCodePage() {
-  // Получаем cookies
-  const cookieStore = await cookies();
-  const role = cookieStore.get('role')?.value;
-  const tgId = cookieStore.get('tgId')?.value;
-
-  // Если пользователь авторизован - делаем SSR редирект
-  if (role && tgId) {
-    switch (role as Role) {
-      case 'student':
-        redirect('/student-dashboard');
-      case 'mentor':
-        redirect('/mentor-dashboard');
-      case 'teacher':
-        redirect('/teacher-dashboard');
-    }
-  }
-
-  // Если нет авторизации - показываем форму
-  return <ClientForm />;
+export default function EnterCodePage() {
+  // До этой точки дойдёт только не-авторизованный юзер:
+  // middleware уже проверил cookies / initData и,
+  // если надо, сразу редиректнул на нужный дашборд.
+  return <ClientFormWrapper />;
 }

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import ResetSessionButton from '@/components/ResetSessionButton';
+
 import {
   Select,
   SelectContent,
@@ -77,6 +79,7 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
     return (
       <div className="text-center text-gray-500">
         На сегодня нет назначенных менторов для вашей группы.
+        <ResetSessionButton />
       </div>
     );
   }

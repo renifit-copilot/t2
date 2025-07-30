@@ -15,6 +15,10 @@ async function seed() {
       code: 'abc123',
       role: 'student',
       groupCode: 'group-1',
+    },    {
+      code: 'abc223',
+      role: 'student',
+      groupCode: 'group-2',
     },
     {
       code: 'mentor42',
