@@ -1,9 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import ResetSessionButton from '@/components/ResetSessionButton';
+
 
 import {
   Select,
@@ -196,8 +198,15 @@ export default function StudentDashboardPage() {
               <FeedbackCard feedback={lastFeedback} />
             </div>
           )}
+
+                    <div className="text-center mt-6">
+            <Link href="/student-dashboard/history">
+              <Button variant="outline">История отзывов</Button>
+            </Link>
+          </div>
         </>
       )}
+
     </div>
   );
 }
