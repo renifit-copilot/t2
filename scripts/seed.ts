@@ -25,6 +25,11 @@ async function seed() {
       role: 'mentor',
       groupCode: 'group-1',
     },
+      {
+    code: 'teach2024',
+    role: 'teacher',
+    groupCode: 'main', // можно поставить любое значение, даже просто 'main'
+  },
   ]);
 
   console.log('✅ Access codes inserted');
