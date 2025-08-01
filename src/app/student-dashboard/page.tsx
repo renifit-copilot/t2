@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -13,14 +13,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Тип для ментора, чтобы было удобнее работать
+import { FeedbackCard } from '@/components/feedback/FeedbackCard'; // импорт карточки
+
 type Mentor = {
   mentorId: string;
   name: string;
 };
 
-// --- Клиентский компонент для формы ---
-// Он принимает список менторов, полученный на сервере
+type Feedback = {
+  id: number;
+  mentorName: string;
+  comment: string;
+  rating: number;
+  date: string;
+};
+
 function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
   const [mentorId, setMentorId] = useState<string>('');
   const [rating, setRating] = useState<string>('');
@@ -36,7 +43,6 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
     setError(null);
     setSuccess(null);
 
-    // Валидация на клиенте
     if (!mentorId || !rating) {
       setError('Пожалуйста, выберите ментора и поставьте оценку.');
       setIsSubmitting(false);
@@ -51,7 +57,7 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
         },
         body: JSON.stringify({
           mentorId,
-          rating: parseInt(rating, 10), // API ожидает число
+          rating: parseInt(rating, 10),
           comment,
         }),
       });
@@ -64,11 +70,9 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
 
       setSuccess('Отзыв успешно отправлен! Страница будет перезагружена.');
 
-      // Перезагружаем страницу через 2 секунды, чтобы пользователь успел увидеть сообщение
       setTimeout(() => {
         window.location.reload();
       }, 2000);
-
     } catch (err: any) {
       setError(err.message);
       setIsSubmitting(false);
@@ -78,7 +82,7 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
   if (mentors.length === 0) {
     return (
       <div className="text-center text-gray-500">
-        На сегодня нет назначенных менторов для вашей группы.
+        На сегодня нет доступных менторов.
         <ResetSessionButton />
       </div>
     );
@@ -86,6 +90,7 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto flex flex-col gap-4">
+      {/* Mentor select */}
       <div>
         <label htmlFor="mentor-select" className="block text-sm font-medium text-gray-700 mb-1">
           Выберите ментора
@@ -104,6 +109,7 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
         </Select>
       </div>
 
+      {/* Rating select */}
       <div>
         <label htmlFor="rating-select" className="block text-sm font-medium text-gray-700 mb-1">
           Оценка
@@ -122,6 +128,7 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
         </Select>
       </div>
 
+      {/* Comment */}
       <div>
         <label htmlFor="comment-textarea" className="block text-sm font-medium text-gray-700 mb-1">
           Комментарий
@@ -145,39 +152,52 @@ function FeedbackForm({ mentors }: { mentors: Mentor[] }) {
   );
 }
 
-
-// --- Основной компонент страницы (SSR) ---
+// ---------- Главный компонент страницы ----------
 export default function StudentDashboardPage() {
-    const [mentors, setMentors] = useState<Mentor[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [lastFeedback, setLastFeedback] = useState<Feedback | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchMentors = async () => {
-            try {
-                const response = await fetch('/api/mentors/by-group');
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Не удалось загрузить список менторов');
-                }
-                const data = await response.json();
-                setMentors(data);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const mentorsRes = await fetch('/api/mentors/by-group');
+        const mentorsData = await mentorsRes.json();
+        setMentors(mentorsData);
 
-        fetchMentors();
-    }, []);
+        const feedbackRes = await fetch('/api/feedback/last');
+        const feedbackData = await feedbackRes.json();
+        setLastFeedback(feedbackData);
+      } catch (err: any) {
+        setError('Ошибка при загрузке данных');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return (
-        <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-6 text-center">Оставить отзыв</h1>
-            {isLoading && <p className="text-center">Загрузка менторов...</p>}
-            {error && <p className="text-center text-red-500">{error}</p>}
-            {!isLoading && !error && <FeedbackForm mentors={mentors} />}
-        </div>
-    );
+    fetchData();
+  }, []);
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6 text-center">Оставить отзыв</h1>
+
+      {isLoading && <p className="text-center">Загрузка...</p>}
+      {error && <p className="text-center text-red-500">{error}</p>}
+
+      {!isLoading && !error && (
+        <>
+          <FeedbackForm mentors={mentors} />
+
+          {lastFeedback && (
+            <div className="mt-10">
+              <h2 className="text-lg font-semibold mb-2 text-center">Ваш последний отзыв</h2>
+              <FeedbackCard feedback={lastFeedback} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 }

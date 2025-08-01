@@ -41,23 +41,23 @@ export async function POST(request: Request) {
     const { mentorId, rating, comment } = result.data;
 
     // Проверяем, назначен ли ментор на группу сегодня
-    const today = new Date();
+    // const today = new Date();
 
-    const assignment = await db.query.mentorAssignments.findFirst({
-      where: and(
-        eq(mentorAssignments.mentorId, mentorId),
-        eq(mentorAssignments.groupCode, groupCode),
-        lte(mentorAssignments.fromDate, today),
-        gte(mentorAssignments.toDate, today)
-      ),
-    });
+    // const assignment = await db.query.mentorAssignments.findFirst({
+    //   where: and(
+    //     eq(mentorAssignments.mentorId, mentorId),
+    //     eq(mentorAssignments.groupCode, groupCode),
+    //     lte(mentorAssignments.fromDate, today),
+    //     gte(mentorAssignments.toDate, today)
+    //   ),
+    // });
 
-    if (!assignment) {
-      return NextResponse.json(
-        { error: 'Ментор не назначен на вашу группу сегодня' },
-        { status: 400 }
-      );
-    }
+    // if (!assignment) {
+    //   return NextResponse.json(
+    //     { error: 'Ментор не назначен на вашу группу сегодня' },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Проверяем, нет ли уже отзыва от этого студента этому ментору сегодня
     const todayStart = new Date();

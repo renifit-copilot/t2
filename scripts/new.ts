@@ -24,23 +24,40 @@ async function seed() {
     username: 'ivantest',
     role: 'mentor',
   });
+  
+    // Добавим ментора
+  await db.insert(users).values({
+    telegramId: '7770003',
+    fullName: 'Денис Тестович',
+    username: 'ivantest1',
+    role: 'mentor',
+  });
 
-  // Добавим студента
+    // Добавим ментора
   await db.insert(users).values({
     telegramId: '7770002',
-    fullName: 'Студент Степанов',
-    username: 'stepanov',
-    role: 'student',
-    groupCode: 'group-1',
+    fullName: 'Иван Хуилович',
+    username: 'ivantest2',
+    role: 'mentor',
   });
 
+
+  // Добавим студента
+  // await db.insert(users).values({
+  //   telegramId: '7770002',
+  //   fullName: 'Студент Степанов',
+  //   username: 'stepanov',
+  //   role: 'student',
+  //   groupCode: 'group-1',
+  // });
+
   // Назначим ментора на 3 дня
-  await db.insert(mentorAssignments).values({
-    mentorId: '7770001',
-    groupCode: 'group-1',
-    fromDate: new Date(),
-    toDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-  });
+  // await db.insert(mentorAssignments).values({
+  //   mentorId: '7770001',
+  //   groupCode: 'group-1',
+  //   fromDate: new Date(),
+  //   toDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+  // });
 
   console.log('✅ Seed complete');
   process.exit(0);
